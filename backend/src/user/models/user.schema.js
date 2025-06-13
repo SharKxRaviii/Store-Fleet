@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import validator from "validator";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 
@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema({
     url: {
       type: String,
       required: true,
-      default: "this is dummy avatar url",
+      default: "avatar url",
     },
   },
   role: {
@@ -45,6 +45,8 @@ const userSchema = new mongoose.Schema({
 
 userSchema.pre("save", async function (next) {
   //  hash user password before saving using bcrypt
+  if(!this.isModified('password')) return next();
+  this.password = await bcrypt.hash(this.password, 12);
 });
 
 // JWT Token
