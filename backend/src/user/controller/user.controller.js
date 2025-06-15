@@ -18,9 +18,18 @@ import crypto from "crypto";
 
 export const createNewUser = async (req, res, next) => {
   const { name, email, password } = req.body;
+
+  if(!name || !email || !password) {
+    return next (new ErrorHandler(400, 'Name, Email and Password is required'));
+  }
   try {
+    const existingUser = await findUserRepo({email});
+    if(existingUser) {
+      return next(new ErrorHandler(409, "Email already exists"));
+    }
+
     const newUser = await createNewUserRepo(req.body);
-    await sendToken(newUser, res, 200);
+    await sendToken(newUser, res, 201);
 
     // Implement sendWelcomeEmail function to send welcome message
     await sendWelcomeEmail(newUser);
