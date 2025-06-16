@@ -11,6 +11,11 @@ export const findUserRepo = async (searchParams, withPassword = false) => {
   else return await UserModel.findOne(searchParams);
 };
 
+// forget password
+export const forgetPasswordRepo = async (email) => {
+  return await UserModel.findOne({email});
+}
+
 export const findUserForPasswordResetRepo = async (hashtoken) => {
   return await UserModel.findOne({
     resetPasswordToken: hashtoken,

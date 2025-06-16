@@ -1,6 +1,6 @@
 // Please don't change the pre-written code
 // Import the necessary modules here
-
+import bcrypt from "bcrypt";
 import { sendPasswordResetEmail } from "../../../utils/emails/passwordReset.js";
 import { sendWelcomeEmail } from "../../../utils/emails/welcomeMail.js";
 import { ErrorHandler } from "../../../utils/errorHandler.js";
@@ -10,6 +10,7 @@ import {
   deleteUserRepo,
   findUserForPasswordResetRepo,
   findUserRepo,
+  forgetPasswordRepo,
   getAllUsersRepo,
   updateUserProfileRepo,
   updateUserRoleAndProfileRepo,
@@ -73,10 +74,51 @@ export const logoutUser = async (req, res, next) => {
 
 export const forgetPassword = async (req, res, next) => {
   // Implement feature for forget password
+  const {email} = req.body;
+  const user = await forgetPasswordRepo(email);
+  if(!user) {
+    return next(new ErrorHandler(404, "User not found"));
+  }
+
+  const resetToken = await user.getResetPasswordToken();
+
+  // Save the updated user with reset token & expiry without validate all required fields
+  await user.save({ validateBeforeSave: false });
+
+  // frontend URL
+  const resetUrl = `/storefleet/user/password/reset/${resetToken}`;
+
+  await sendPasswordResetEmail(user, resetUrl);
+
+  res.status(200).json({
+    success: true,
+    message: "Reset link sent to your email",
+  });
 };
 
 export const resetUserPassword = async (req, res, next) => {
   // Implement feature for reset password
+  const {token} = req.params;
+  const {newPassword} = req.body;
+
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+  const user = await findUserForPasswordResetRepo(hashedToken);
+  if (!user) {
+    return next(new ErrorHandler(400, "Invalid or expired token"));
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+  user.password = hashedPassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire= undefined;
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Password has been reset successfully",
+  });
 };
 
 export const getUserDetails = async (req, res, next) => {
