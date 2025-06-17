@@ -162,4 +162,7 @@ export const deleteUser = async (req, res, next) => {
 
 export const updateUserProfileAndRole = async (req, res, next) => {
   // Write your code here for updating the roles of other users by admin
+  const {name, email, role} = req.body;
+
+  await user
 };
