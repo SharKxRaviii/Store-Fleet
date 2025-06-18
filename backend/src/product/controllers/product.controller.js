@@ -31,6 +31,59 @@ export const addNewProduct = async (req, res, next) => {
 
 export const getAllProducts = async (req, res, next) => {
   // Implement the functionality for search, filter and pagination this function.
+  try {
+    const queryProduct = {};
+
+    // search by name
+    if(req.query.keyword) {
+      queryProduct.name = {
+        $regex: req.query.keyword,
+        $options: "i" // case insensitive;
+      };
+    }
+
+    // filter by minPrice || maxPrice
+    if(req.query.minPrice || req.query.maxPrice) {
+      queryProduct.price = {};
+
+      if(req.query.minPrice) {
+        queryProduct.price.$gte = Number(req.query.minPrice);
+      }
+
+      if(req.query.maxPrice) {
+        queryProduct.price.$lte = Number(req.query.maxPrice)
+      }
+    }
+
+
+    // filter by category
+    if(req.query.category) {
+      queryProduct.category = req.query.category;
+    }
+
+
+    // pagination
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // filtered and paginated products
+    const products = await getAllProductsRepo(queryProduct, limit, skip);
+
+    // total count of filtered products
+    const totalProducts = await getTotalCountsOfProduct(queryProduct);
+
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      totalProducts,
+      page,
+      totalPage: Math.ceil(totalProducts/limit),
+      products
+    });
+  } catch (error) {
+    return next(new ErrorHandler(500, error));
+  }
 };
 
 export const updateProduct = async (req, res, next) => {
