@@ -198,7 +198,10 @@ export const deleteReview = async (req, res, next) => {
     const reviews = product.reviews;
 
     const isReviewExistIndex = reviews.findIndex((rev) => {
-      return rev._id.toString() === reviewId.toString();
+      return (
+        rev._id.toString() === reviewId.toString() &&
+        rev.user.toString() === req.user._id.toString()
+      );
     });
     if (isReviewExistIndex < 0) {
       return next(new ErrorHandler(400, "review doesn't exist"));
@@ -206,6 +209,15 @@ export const deleteReview = async (req, res, next) => {
 
     const reviewToBeDeleted = reviews[isReviewExistIndex];
     reviews.splice(isReviewExistIndex, 1);
+
+    // Recalculate average rating
+    let avgRating = 0;
+    reviews.forEach((rev) => {
+      avgRating += rev.rating;
+    });
+
+    // Handle case where all reviews are deleted
+    product.rating = reviews.length === 0 ? 0 : avgRating / reviews.length;
 
     await product.save({ validateBeforeSave: false });
     res.status(200).json({
